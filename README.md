@@ -1,5 +1,10 @@
 # Mara Schema
 
+[![Build Status](https://travis-ci.org/mara/mara-schema.svg?branch=master)](https://travis-ci.org/mara/mara-schema)
+[![PyPI - License](https://img.shields.io/pypi/l/mara-schema.svg)](https://github.com/mara/mara-schema/blob/master/LICENSE)
+[![PyPI version](https://badge.fury.io/py/mara-schema.svg)](https://badge.fury.io/py/mara-schema)
+[![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
+
 Python based mapping of physical data warehouse tables to logical business entities (a.k.a. "cubes", "models", "data sets", etc.). It comes with 
 - sql query generation for flattening normalized database tables into wide tables for various analytics front-ends
 - a flask based visualization of the schema that can serve as a documentation of the business definitions of a data warehouse (a.k.a "data dictionary" or "data guide")
