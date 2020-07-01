@@ -7,13 +7,11 @@ import typing
 class Type(enum.EnumMeta):
     """
     Attribute types that need special treatment in artifact creation
-        Type.ID: A numeric ID that is converted to text in flattened table so that it can be filtered
-        Type.DATE: Attribute can be created as Mondrian Dimension with template if template is specified in
-            `mondrian_dimension_templates` in config.py.
-        Type.DURATION: Attribute can be created as Mondrian Dimension with template if template is specified in
-            `mondrian_dimension_templates` in config.py.
-        Type.ENUM: Attributes is converted to text in flattened table.
-        Type.ARRAY: Attribute is excluded as dimension in Mondrian schema.
+        Type.ID: A numeric ID that is converted to text in a flattened table so that it can be filtered
+        Type.DATE: Date attribute as a foreign_key to a date dimension
+        Type.DURATION: Duration attribute as a foreign_key to a duration dimension
+        Type.ENUM: Attributes that is converted to text in a flattened table.
+        Type.ARRAY: Attribute of type array
     """
     DATE = 'date'
     DURATION = 'duration'
