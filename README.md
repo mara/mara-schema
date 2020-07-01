@@ -22,7 +22,7 @@ Have a look at a real-world application of Mara Schema in the [Mara Example Proj
 
 **Why** should I use Mara Schema?
 
-1. **Definition of analytical abusiness entities as code**: There are many solutions for documenting the company-wide definitions of attributes & metrics for the users of a data warehouse. These can range from simple spreadsheets or wikis to metadata management tools inside reporting front-ends. However, these definitions can quickly get of out of sync when new columns are added or changed in the underlying data warehouse. Mara Schema allows to deploy definition changes together with changes in the underlying ETL processes so that all definitions will always be in sync with the underlying data warehouse schema.
+1. **Definition of analytical and business entities as code**: There are many solutions for documenting the company-wide definitions of attributes & metrics for the users of a data warehouse. These can range from simple spreadsheets or wikis to metadata management tools inside reporting front-ends. However, these definitions can quickly get out of sync when new columns are added or changed in the underlying data warehouse. Mara Schema allows to deploy definition changes together with changes in the underlying ETL processes so that all definitions will always be in sync with the underlying data warehouse schema.
 
 
 2. **Automatic generation of aggregates / artifacts**: When a company wants to enforce a *single source of truth* in their data warehouse, then a heavily normalized Kimball-style [snowflake schema](https://en.wikipedia.org/wiki/Snowflake_schema) is still the weapon of choice. It enforces an agreed-upon unified modelling of business entities across domains and ensures referential consistency. However, snowflake schemas are not ideal for analytics or data science because they require a lot of joins. Most analytical databases and reporting tools nowadays work better with pre-flattened wide tables. Creating such flattened tables is an error-prone and dull activity, but with Mara Schema one can automate most of the work in creating flattened data set tables in the ETL.
@@ -43,7 +43,7 @@ The respective entity and data set definitions for this database schema can be f
 
 &nbsp;
 
-In Mara Schema, each business relevant table in the dimensional schema is mapped to an [Entity](mara_schema/entity.py). In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of a order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
+In Mara Schema, each business relevant table in the dimensional schema is mapped to an [Entity](mara_schema/entity.py). In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of an order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
 
 Here's a [shortened](mara_schema/example/entities/order_item.py) defnition of the "Order item" entity based on the `dim.order_item` table:
 
@@ -56,7 +56,7 @@ order_item_entity = Entity(
     schema_name='dim')
 ```
 
-It assumes that there is a `order_item` table in the `dim` schema of the data warehouse, with `order_item_id` as the primary key. The optional `table_name` and `pk_column_name` parameters can be used when another naming scheme for tables and primary keys is used.  
+It assumes that there is an `order_item` table in the `dim` schema of the data warehouse, with `order_item_id` as the primary key. The optional `table_name` and `pk_column_name` parameters can be used when another naming scheme for tables and primary keys is used.  
 
 &nbsp;
 
@@ -79,7 +79,7 @@ There a several parameters for controlling the generation of artifact tables and
 - Setting `personal_data` to `True` means that the attribute contains personally identifiable information and thus should be hidden from most users.
 - When `high_cardinality` is `True`, then the attribute is hidden in front-ends that can not deal well with dimensions with a lot of values.
 - The `type` attribute controls how some fields are treated in artifact creation. See [mara_schema/attribute.py#L7](mara_schema/attribute.py#L7).
-- An `important_field` highlights the the data set and is shown by default in overviews.
+- An `important_field` highlights the data set and is shown by default in overviews.
 - When `accessible_via_entity_link` is `False`, then the attribute will be hidden in data sets that use the entity as an dimension.
 
 &nbsp;
@@ -94,7 +94,7 @@ order_item_entity.link_entity(target_entity=order_entity, prefix='')
 order_item_entity.link_entity(target_entity=product_entity)
 ```
 
-This pulls in attributes of other entities that are connected to an entity table via foreign key columns. When the other entity is called "Foo bar", then it's assumed that there is a `foo_bar_fk` in the entity table (can be overwritten with the `fk_column` parameter). The optional `prefix` controls how linked attributes are named (e.g. "First order data" vs "Order date") and also helps to disambiguate when there are multiple links from one entity to another.
+This pulls in attributes of other entities that are connected to an entity table via foreign key columns. When the other entity is called "Foo bar", then it's assumed that there is a `foo_bar_fk` in the entity table (can be overwritten with the `fk_column` parameter). The optional `prefix` controls how linked attributes are named (e.g. "First order date" vs "Order date") and also helps to disambiguate when there are multiple links from one entity to another.
 
 &nbsp;
 
@@ -110,7 +110,7 @@ order_items_data_set = DataSet(entity=order_item_entity, name='Order items')
 
 &nbsp;
 
-There are two kinds of [Metrics](mara_schema/metric.py) (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as a direct aggregations on a entity table column: 
+There are two kinds of [Metrics](mara_schema/metric.py) (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as direct aggregations on an entity table column: 
 
 ```python
 from mara_schema.data_set import Aggregation
@@ -158,7 +158,7 @@ With complex snowflake schemas the graph of linked entities can become rather bi
 customers_data_set.exclude_path(['Order', 'Customer'])
 ```
 
-This means that the customer of the first order of a customer will not be part of the customers data set. Similarly, it is possible limit the list attributes from a linked entity: 
+This means that the customer of the first order of a customer will not be part of the customers data set. Similarly, it is possible to limit the list of attributes from a linked entity: 
 
 ```python
 order_items_data_set.include_attributes(['Order', 'Customer', 'Order'], ['Order date'])
@@ -226,7 +226,7 @@ Please note that the `data_set_sql_query` only returns SQL select statements, it
 
 &nbsp;
 
-There are several parameters for controlling the output of `data_set_sql_query` function:
+There are several parameters for controlling the output of the `data_set_sql_query` function:
 
  - `human_readable_columns`: Whether to use "Customer name" rather than "customer_name" as column name
  - `pre_computed_metrics`: Whether to pre-compute composed metrics, counts and distinct counts on row level
