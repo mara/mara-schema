@@ -260,12 +260,6 @@ or
 pip install git+https://github.com/mara/mara-schema.git
 ```
 
-For an example of an integration into a flask application, have a look at the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2).
-
-```bash
-pip install -e git+git@github.com:mara/mara-schema.git@master#egg=mara-schema
-```
-
 For an example of an integration into a flask application, have a look at the [Mara Example Project 1](https://github.com/mara/mara-example-project-1).
 
 
