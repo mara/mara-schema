@@ -30,7 +30,7 @@ order_items_data_set.add_simple_metric(
     name='Shipping revenue',
     description='Revenue generated based on the price of the items and delivery fee',
     aggregation=Aggregation.SUM,
-    column_name='revenue')
+    column_name='shipping_revenue')
 
 order_items_data_set.add_composed_metric(
     name='Revenue',
