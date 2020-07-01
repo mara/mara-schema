@@ -52,7 +52,7 @@ class SimpleMetric(Metric):
             column_name: The column that the aggregation is based on
             aggregation: The aggregation method to use
             important_field: It refers to key business metrics.
-            number_format: The way to format string in Mondrian. Default to NumberFormat.STANDARD.
+            number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
         """
         super().__init__(name, description, data_set)
         self.column_name = column_name
@@ -81,7 +81,7 @@ class ComposedMetric(Metric):
             formula_template: How to compose the parent metrics, with '{}' as placeholders
                 Examples: '{} + {}', '{} / ({} + {})'
             important_field: It refers to key business metrics.
-            number_format: The way to format string in Mondrian. Default to NumberFormat.STANDARD.
+            number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
         """
         super().__init__(name, description, data_set)
         self.parent_metrics = parent_metrics

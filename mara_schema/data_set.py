@@ -39,7 +39,7 @@ class DataSet():
             column_name: The column that the aggregation is based on
             aggregation: The aggregation method to use
             important_field: It refers to key business metrics.
-            number_format: The way to format string in Mondrian. Default to NumberFormat.STANDARD.
+            number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
         """
         if name in self.metrics:
             raise ValueError(f'Metric "{name}" already exists in data set "{self.name}"')
@@ -63,7 +63,7 @@ class DataSet():
             description: A meaningful business definition of the metric
             formula: How to compute the metric. Examples: [Metric A] + [Metric B],  [Metric A] / ([Metric B] + [Metric C])
             important_field: It refers to key business metrics.
-            number_format: The way to format string in Mondrian. Default to NumberFormat.STANDARD.
+            number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
         """
         if name in self.metrics:
             raise ValueError(f'Metric "{name}" already exists in data set "{self.name}"')
