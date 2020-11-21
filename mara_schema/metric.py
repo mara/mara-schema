@@ -10,6 +10,12 @@ class Aggregation(enum.EnumMeta):
     DISTINCT_COUNT = 'distinct-count'
 
 
+class DateAggregation(enum.EnumMeta):
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
 class NumberFormat(enum.EnumMeta):
     """How to format values"""
     STANDARD = 'Standard'
