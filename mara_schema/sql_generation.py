@@ -169,7 +169,8 @@ def aggregate_table_sql_query(data_set: DataSet,
                               engine: sqlalchemy.engine.Engine = None,
                               aggregation_attributes: [] = None,
                               date_column: str = '',
-                              date_aggregation: DateAggregation = None) -> str:
+                              date_aggregation: DateAggregation = None,
+                              snapshot_dataset: bool = False) -> str:
     """
     Returns a SQL select statement that create aggregate table for a data set
 
@@ -211,21 +212,19 @@ def aggregate_table_sql_query(data_set: DataSet,
 
             column_query = f"""\n    {column}:: INTEGER AS {'"Week number"' if human_readable_columns else
             '"week_id"'}"""
-            column_definitions.append(column_query)
-            group_by_column.append(column)
+
         elif date_aggregation == DateAggregation.MONTHLY:
             column = f"to_char(to_date({date_column_name}:: TEXT, 'YYYYMMDD'), 'YYYYMM')"
             column_query = f"""\n    {column}:: INTEGER AS {'"Month number"' if human_readable_columns else
             '"month_id"'}"""
-            column_definitions.append(column_query)
-            group_by_column.append(column)
 
         elif date_aggregation == DateAggregation.YEARLY:
             column = f"extract('year' from to_date({date_column_name}:: TEXT, 'YYYYMMDD'))"
             column_query = f"""\n    {column}:: INTEGER AS {'"Year number"' if human_readable_columns else
             '"year_id"'}"""
-            column_definitions.append(column_query)
-            group_by_column.append(column)
+
+        column_definitions.append(column_query)
+        group_by_column.append(column)
         return False
 
     # helper function for pre-computing composed metrics
@@ -246,14 +245,14 @@ def aggregate_table_sql_query(data_set: DataSet,
             aggregation_string_end = ')'
         return aggregation_string_start, aggregation_string_end
 
-
-# alias for the underlying table of the entity of the data set
+    # alias for the underlying table of the entity of the data set
     entity_table_alias = database_identifier(data_set.entity.name)
 
     # progressively build the query
     query = 'SELECT'
     column_definitions = []
     group_by_column = []
+    snapshot_filter = ''
 
     # Iterate all connected entities
     for path, attributes in data_set.connected_attributes().items():
@@ -279,12 +278,16 @@ def aggregate_table_sql_query(data_set: DataSet,
                                               cast_to_text=attribute.type == Type.ENUM,
                                               first=first,
                                               custom_column_expression=custom_column_expression)
-                group_by_column.append(custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}')
 
             elif column_alias.lower() == date_column.lower():
                 first = add_date_column_definition(date_aggregation=date_aggregation,
                                                    date_column_name=fk_column,
                                                    human_readable_columns=human_readable_columns)
+
+                if snapshot_dataset and date_aggregation == DateAggregation.MONTHLY:
+                    snapshot_filter = f"""\nWHERE to_date({fk_column}::TEXT, 'YYYYMMDD') = date_trunc('MONTH', to_date({fk_column}:: TEXT, 'YYYYMMDD'))::DATE  + (8 - extract(dow from date_trunc('MONTH', to_date({fk_column}:: TEXT, 'YYYYMMDD'))::DATE))::integer%7"""
+                elif snapshot_dataset and date_aggregation == DateAggregation.WEEKLY:
+                    snapshot_filter = f"""\nWHERE EXTRACT(ISODOW FROM to_date({fk_column}:: TEXT, 'YYYYMMDD')) = 1"""
 
     first = True
     for name, metric in data_set.metrics.items():
@@ -318,12 +321,11 @@ def aggregate_table_sql_query(data_set: DataSet,
         target_entity = entity_link.target_entity
 
         if right_alias.split('.')[0] in [group_.split('.')[0] for group_ in group_by_column]:
-
             query += f'\nLEFT JOIN {quote(target_entity.schema_name)}.{quote(target_entity.table_name)} {quote(right_alias)}'
             query += f' ON {quote(left_alias)}.{quote(path[-1].fk_column)} = {quote(right_alias)}.{quote(target_entity.pk_column_name)}'
 
-    # if snapshot_dataset and by_month:
-    #     query += snapshot_filter
+    if snapshot_dataset:
+        query += snapshot_filter
     if group_by_column:
         query += f'\nGROUP BY {", ".join(group_by_column)}'
     return query
