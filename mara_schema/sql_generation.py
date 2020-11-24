@@ -9,6 +9,12 @@ from .entity import EntityLink
 from .metric import SimpleMetric, Aggregation, DateAggregation
 
 
+class AggregationDataset(Exception):
+    """ Snapshot is not supported with yearly aggregation
+    Attributes for aggregation can not be empty"""
+    pass
+
+
 def data_set_sql_query(data_set: DataSet,
                        human_readable_columns=True,
                        pre_computed_metrics=True,
@@ -168,7 +174,7 @@ def aggregate_table_sql_query(data_set: DataSet,
                               human_readable_columns=True,
                               engine: sqlalchemy.engine.Engine = None,
                               aggregation_attributes: [] = None,
-                              date_column: str = '',
+                              date_attribute_name: str = '',
                               date_aggregation: DateAggregation = None,
                               snapshot_dataset: bool = False) -> str:
     """
@@ -179,12 +185,14 @@ def aggregate_table_sql_query(data_set: DataSet,
         human_readable_columns: Whether to use "Customer name" rather than "customer_name" as column name
         engine: A sqlalchemy engine that is used to quote database identifiers. Defaults to a PostgreSQL engine.
         aggregation_attributes: A list by which you can do aggregation
-        date_column: The date column name for aggregation
+        date_attribute_name: The date column name for aggregation
         date_aggregation: Whether to aggregate it weekly, monthly or yearly
+        snapshot_dataset: Whether to create snapshot of the aggregation table
 
     Returns:
         A string containing the select statement
     """
+
     engine = engine or sqlalchemy.create_engine(f'postgresql+psycopg2://')
 
     def quote(name) -> str:
@@ -208,23 +216,24 @@ def aggregate_table_sql_query(data_set: DataSet,
     def add_date_column_definition(date_aggregation: DateAggregation, date_column_name: str,
                                    human_readable_columns: bool):
         if date_aggregation == DateAggregation.WEEKLY:
-            column = f"to_char(to_date({date_column_name}:: TEXT, 'YYYYMMDD'), 'IYYYIW')"
+            column = f"to_char({date_column_name}, 'IYYY-IW')"
 
-            column_query = f"""\n    {column}:: INTEGER AS {'"Week number"' if human_readable_columns else
+            column_query = f"""\n    {column} AS {'"Week number"' if human_readable_columns else
             '"week_id"'}"""
 
         elif date_aggregation == DateAggregation.MONTHLY:
-            column = f"to_char(to_date({date_column_name}:: TEXT, 'YYYYMMDD'), 'YYYYMM')"
-            column_query = f"""\n    {column}:: INTEGER AS {'"Month number"' if human_readable_columns else
+            column = f"to_char({date_column_name}, 'YYYY-MM')"
+            column_query = f"""\n    {column} AS {'"Month number"' if human_readable_columns else
             '"month_id"'}"""
 
         elif date_aggregation == DateAggregation.YEARLY:
-            column = f"extract('year' from to_date({date_column_name}:: TEXT, 'YYYYMMDD'))"
-            column_query = f"""\n    {column}:: INTEGER AS {'"Year number"' if human_readable_columns else
+            column = f"extract('year' from {date_column_name})"
+            column_query = f"""\n    {column} AS {'"Year number"' if human_readable_columns else
             '"year_id"'}"""
 
         column_definitions.append(column_query)
         group_by_column.append(column)
+
         return False
 
     # helper function for pre-computing composed metrics
@@ -243,8 +252,18 @@ def aggregate_table_sql_query(data_set: DataSet,
         elif metric.aggregation == Aggregation.DISTINCT_COUNT:
             aggregation_string_start = 'COUNT(DISTINCT '
             aggregation_string_end = ')'
+        elif metric.aggregation == Aggregation.MIN:
+            aggregation_string_start = 'MIN('
+            aggregation_string_end = ')'
+        elif metric.aggregation == Aggregation.MAX:
+            aggregation_string_start = 'MAX('
+            aggregation_string_end = ')'
         return aggregation_string_start, aggregation_string_end
 
+    if aggregation_attributes is None or aggregation_attributes == []:
+        raise AggregationDataset("Attributes for aggregation can not be empty")
+    elif date_aggregation == DateAggregation.YEARLY and snapshot_dataset:
+        AggregationDataset("Snapshot not supported with yearly aggregation!!")
     # alias for the underlying table of the entity of the data set
     entity_table_alias = database_identifier(data_set.entity.name)
 
@@ -261,17 +280,12 @@ def aggregate_table_sql_query(data_set: DataSet,
         # Add columns for all attributes
         for name, attribute in attributes.items():
 
-            fk_column = ''
-            if path:
-                fk_column = path[0].fk_column
-
             table_alias = table_alias_for_path(path) if path else entity_table_alias
             column_name = attribute.column_name
             column_alias = name if human_readable_columns else database_identifier(name)
             custom_column_expression = None
 
-            if column_alias.lower() in [e.lower() for e in aggregation_attributes] or \
-                    (aggregation_attributes == [] and column_alias.lower() != date_column.lower()):
+            if column_alias.lower() in [e.lower() for e in aggregation_attributes]:
                 first = add_column_definition(table_alias=table_alias,
                                               column_name=column_name,
                                               column_alias=column_alias,
@@ -279,15 +293,24 @@ def aggregate_table_sql_query(data_set: DataSet,
                                               first=first,
                                               custom_column_expression=custom_column_expression)
 
-            elif column_alias.lower() == date_column.lower():
+            elif column_alias.lower() == date_attribute_name.lower():
+
                 first = add_date_column_definition(date_aggregation=date_aggregation,
-                                                   date_column_name=fk_column,
+                                                   date_column_name=column_name,
                                                    human_readable_columns=human_readable_columns)
 
-                if snapshot_dataset and date_aggregation == DateAggregation.MONTHLY:
-                    snapshot_filter = f"""\nWHERE to_date({fk_column}::TEXT, 'YYYYMMDD') = date_trunc('MONTH', to_date({fk_column}:: TEXT, 'YYYYMMDD'))::DATE  + (8 - extract(dow from date_trunc('MONTH', to_date({fk_column}:: TEXT, 'YYYYMMDD'))::DATE))::integer%7"""
-                elif snapshot_dataset and date_aggregation == DateAggregation.WEEKLY:
-                    snapshot_filter = f"""\nWHERE EXTRACT(ISODOW FROM to_date({fk_column}:: TEXT, 'YYYYMMDD')) = 1"""
+                if date_aggregation == DateAggregation.WEEKLY:
+                    date_ = f"""{column_name} - EXTRACT(ISODOW FROM {column_name})::INT + 1"""
+                    snapshot_filter = f"""\nWHERE {column_name} = {date_}"""
+
+                elif date_aggregation == DateAggregation.MONTHLY:
+                    date_ = f"""date_trunc('MONTH', {column_name})::DATE  + (8 - extract(dow from date_trunc('MONTH', {column_name})::DATE))::integer%7"""
+                    snapshot_filter = f"""\nWHERE {column_name} >= {date_} AND {column_name} <= {date_} + 7"""
+
+                elif date_aggregation == DateAggregation.YEARLY:
+                    date_ = f"""date_trunc('YEAR', {column_name})::DATE"""
+
+                column_definitions.append(f"""\n    MIN({date_}) AS "{date_attribute_name if human_readable_columns else 'date_id'}" """)
 
     first = True
     for name, metric in data_set.metrics.items():

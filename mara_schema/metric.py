@@ -8,6 +8,8 @@ class Aggregation(enum.EnumMeta):
     AVERAGE = 'avg'
     COUNT = 'count'
     DISTINCT_COUNT = 'distinct-count'
+    MIN = 'min'
+    MAX = 'max'
 
 
 class DateAggregation(enum.EnumMeta):
