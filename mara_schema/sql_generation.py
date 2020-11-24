@@ -41,7 +41,7 @@ def data_set_sql_query(data_set: DataSet,
 
     def quote(name) -> str:
         """Quote a column or table name for the specified database engine"""
-        return engine.dialect.identifier_preparer.quote(name)
+        return quote_(name, engine)
 
     # alias for the underlying table of the entity of the data set
     entity_table_alias = database_identifier(data_set.entity.name)
@@ -55,28 +55,17 @@ def data_set_sql_query(data_set: DataSet,
     for path, attributes in data_set.connected_attributes().items():
         first = True  # for adding an empty line between each entity
 
-        # helper function for adding a column
-        def add_column_definition(table_alias: str, column_name: str, column_alias: str,
-                                  cast_to_text: bool, first: bool, custom_column_expression: str = None):
-            column_definition = '\n    ' if first else '    '
-            column_definition += custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}'
-            if cast_to_text:
-                column_definition += '::TEXT'
-            if column_alias != column_name:
-                column_definition += f' AS {quote(column_alias)}'
-            column_definitions.append(column_definition)
-
-            return False
-
         if star_schema and path:  # create a foreign key to the last entity of the path
-            first = add_column_definition(
+            first, column_definition = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
                 column_alias=(normalize_name(' '.join([entity_link.prefix or entity_link.target_entity.name
                                                        for entity_link in path]))
                               if human_readable_columns else table_alias_for_path(path) + '_fk'),
-                cast_to_text=False, first=first)
+                cast_to_text=False, first=first,
+                engine=engine)
 
+            column_definitions.append(column_definition)
         # Add columns for all attributes
         for name, attribute in attributes.items():
             if attribute.personal_data and not personal_data:
@@ -100,9 +89,12 @@ def data_set_sql_query(data_set: DataSet,
                 else:
                     continue  # Exclude attributes from linked entities
 
-            first = add_column_definition(table_alias=table_alias, column_name=column_name, column_alias=column_alias,
-                                          cast_to_text=attribute.type == Type.ENUM, first=first,
-                                          custom_column_expression=custom_column_expression)
+            first, column_definition = add_column_definition(table_alias=table_alias, column_name=column_name,
+                                                             column_alias=column_alias,
+                                                             cast_to_text=attribute.type == Type.ENUM, first=first,
+                                                             custom_column_expression=custom_column_expression,
+                                                             engine=engine)
+            column_definitions.append(column_definition)
 
     # helper function for pre-computing composed metrics
     def sql_formula(metric):
@@ -170,6 +162,26 @@ def table_alias_for_path(path: (EntityLink,)) -> str:
                                          for entity_link in path]))
 
 
+def quote_(name, engine) -> str:
+    """Quote a column or table name for the specified database engine"""
+    return engine.dialect.identifier_preparer.quote(name)
+
+    # helper function for adding a column
+
+
+def add_column_definition(table_alias: str, column_name: str, column_alias: str,
+                          cast_to_text: bool, first: bool, custom_column_expression: str = None,
+                          engine=None):
+    column_definition = '\n    ' if first else '    '
+    column_definition += custom_column_expression or f'{quote_(table_alias, engine)}.{quote_(column_name, engine)}'
+    if cast_to_text:
+        column_definition += '::TEXT'
+    if column_alias != column_name:
+        column_definition += f' AS {quote_(column_alias, engine)}'
+
+    return False, column_definition
+
+
 def aggregate_table_sql_query(data_set: DataSet,
                               human_readable_columns=True,
                               engine: sqlalchemy.engine.Engine = None,
@@ -197,21 +209,7 @@ def aggregate_table_sql_query(data_set: DataSet,
 
     def quote(name) -> str:
         """Quote a column or table name for the specified database engine"""
-        return engine.dialect.identifier_preparer.quote(name)
-
-    def add_column_definition(table_alias: str, column_name: str, column_alias: str,
-                              cast_to_text: bool, first: bool, custom_column_expression: str = None):
-
-        column_definition = '\n    ' if first else '    '
-
-        column_definition += custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}'
-        group_by_column.append(custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}')
-        if cast_to_text:
-            column_definition += '::TEXT'
-        if column_alias != column_name:
-            column_definition += f' AS {quote(column_alias)}'
-        column_definitions.append(column_definition)
-        return False
+        return quote_(name, engine)
 
     def add_date_column_definition(date_aggregation: DateAggregation, date_column_name: str,
                                    human_readable_columns: bool):
@@ -286,13 +284,15 @@ def aggregate_table_sql_query(data_set: DataSet,
             custom_column_expression = None
 
             if column_alias.lower() in [e.lower() for e in aggregation_attributes]:
-                first = add_column_definition(table_alias=table_alias,
-                                              column_name=column_name,
-                                              column_alias=column_alias,
-                                              cast_to_text=attribute.type == Type.ENUM,
-                                              first=first,
-                                              custom_column_expression=custom_column_expression)
-
+                first, column_definition = add_column_definition(table_alias=table_alias,
+                                                                 column_name=column_name,
+                                                                 column_alias=column_alias,
+                                                                 cast_to_text=attribute.type == Type.ENUM,
+                                                                 first=first,
+                                                                 custom_column_expression=custom_column_expression,
+                                                                 engine=engine)
+                group_by_column.append(custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}')
+                column_definitions.append(column_definition)
             elif column_alias.lower() == date_attribute_name.lower():
 
                 first = add_date_column_definition(date_aggregation=date_aggregation,
@@ -310,7 +310,8 @@ def aggregate_table_sql_query(data_set: DataSet,
                 elif date_aggregation == DateAggregation.YEARLY:
                     date_ = f"""date_trunc('YEAR', {column_name})::DATE"""
 
-                column_definitions.append(f"""\n    MIN({date_}) AS "{date_attribute_name if human_readable_columns else 'date_id'}" """)
+                column_definitions.append(
+                    f"""\n    MIN({date_}) AS "{date_attribute_name if human_readable_columns else 'date_id'}" """)
 
     first = True
     for name, metric in data_set.metrics.items():
