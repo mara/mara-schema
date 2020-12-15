@@ -1,0 +1,18 @@
+/*
+As of 2021-01-25, supported in Chrome, Firefoy, Edge, but not Safari and doesn't need any extra css
+classes on the anchor
+https://css-tricks.com/fixed-headers-on-page-links-and-overlapping-content-oh-my/
+*/
+html {
+  scroll-padding-top: 90px; /* height of sticky header + head of table */
+}
+
+/* For styling a trailing <a hred="#id" id="#id">¶</a> so it's light grey but gets the blue + underline on hover */
+html a.anchor-link-sign {
+    color: #bfbfbf;
+}
+
+html a.anchor-link-sign:hover {
+    cursor: pointer;
+    color: #0275d8;
+}
