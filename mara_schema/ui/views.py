@@ -96,8 +96,11 @@ def data_set_page(id: str) -> response.Response:
                 ]])
             for prefixed_name, attribute in attributes.items():
                 rows.append(_.tr[_.td[escape(prefixed_name)],
-                                 _.td[_.i[escape(attribute.description)]],
-                                 _.td[_.tt[escape(f'{path[-1].target_entity.table_name + "." if path else ""}{attribute.column_name}')]]])
+                                 _.td[[_.i[escape(attribute.description)]] +
+                                      ([' (', _.a(href=attribute.more_url)['more...'], ')']
+                                       if attribute.more_url else [])],
+                                 _.td[_.tt[escape(
+                                     f'{path[-1].target_entity.table_name + "." if path else ""}{attribute.column_name}')]]])
         return rows
 
     return response.Response(
@@ -116,7 +119,9 @@ def data_set_page(id: str) -> response.Response:
                         ['Name', 'Description', 'Computation'],
                         [[_.tr[
                               _.td[escape(metric.name)],
-                              _.td[_.i[escape(metric.description)]],
+                              _.td[[_.i[escape(metric.description)]] +
+                                   ([' (', _.a(href=metric.more_url)['more...'], ')'] if metric.more_url else [])
+                                   ],
                               _.td[_.code[escape(metric.display_formula())]]
                           ] for metric in data_set.metrics.values()]]),
                 ]),

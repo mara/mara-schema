@@ -1,3 +1,5 @@
+import typing
+
 from .attribute import Attribute, Type
 
 
@@ -32,7 +34,9 @@ class Entity():
 
     def add_attribute(self, name: str, description: str, column_name: str = None, type: Type = None,
                       high_cardinality: bool = False, personal_data: bool = False, important_field: bool = False,
-                      accessible_via_entity_link: bool = True) -> None:
+                      accessible_via_entity_link: bool = True,
+                      more_url: typing.Optional[str] = None,
+                      ) -> None:
         """
         Adds a property based on a column in the underlying dimensional table to the entity
 
@@ -46,7 +50,8 @@ class Entity():
             personal_data: It refers to person related data, e.g. "Email address", "Name".
             important_field: A field that highlights the the data set. Shown by default in overviews
             accessible_via_entity_link: If False, then this attribute is excluded from data sets that are not
-                     based on this entity
+                     based on this entity.
+            more_url: URL (as string) which should be appended as a `more...` link in the UI.
         """
         self.attributes.append(
             Attribute(
@@ -57,7 +62,8 @@ class Entity():
                 type=type,
                 high_cardinality=high_cardinality,
                 personal_data=personal_data,
-                important_field=important_field
+                important_field=important_field,
+                more_url=more_url,
             ))
 
     def link_entity(self, target_entity: 'Entity', fk_column: str = None,
@@ -118,7 +124,7 @@ class Entity():
 
 class EntityLink():
     def __init__(self, target_entity: Entity, prefix: str,
-                 description: str= None, fk_column: str = None) -> None:
+                 description: str = None, fk_column: str = None) -> None:
         """
         A link from an entity to another entity, corresponds to a foreign key relationship
 
