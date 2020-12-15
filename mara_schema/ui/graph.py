@@ -11,12 +11,12 @@ edge_arrow_size_ = '0.7'
 
 
 def overview_graph():
-    from ..config import data_sets
+    from .. import config
     from .views import data_set_url
 
     all_entities = set()
 
-    for data_set in data_sets():
+    for data_set in config.data_sets():
         all_entities.update(data_set.entity.connected_entities())
 
     graph = graphviz.Digraph(engine='neato', graph_attr={})
