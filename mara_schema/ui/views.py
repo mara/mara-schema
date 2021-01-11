@@ -68,6 +68,25 @@ def index_page() -> response.Response:
     )
 
 
+def get_js_files():
+    return [flask.url_for('mara_schema.static', filename='data-set-sql-query.js')]
+
+
+def create_metrics_card(data_set: DataSet):
+    return bootstrap.card(
+        header_left='Metrics',
+        body=[
+            html.asynchronous_content(flask.url_for('mara_schema.metrics_graph', id=data_set.id())),
+            bootstrap.table(
+                ['Name', 'Description', 'Computation'],
+                [[_.tr[
+                      _.td[escape(metric.name)],
+                      _.td[_.i[escape(metric.description)]],
+                      _.td[_.code[escape(metric.display_formula())]]
+                  ] for metric in data_set.metrics.values()]]),
+        ])
+
+
 @blueprint.route('/<id>')
 @acl.require_permission(acl_resource_schema)
 def data_set_page(id: str) -> response.Response:
@@ -108,18 +127,7 @@ def data_set_page(id: str) -> response.Response:
                     _.code[escape(f'{data_set.entity.schema_name}.{data_set.entity.table_name}')]],
                 html.asynchronous_content(flask.url_for('mara_schema.data_set_graph', id=data_set.id())),
             ]),
-            bootstrap.card(
-                header_left='Metrics',
-                body=[
-                    html.asynchronous_content(flask.url_for('mara_schema.metrics_graph', id=data_set.id())),
-                    bootstrap.table(
-                        ['Name', 'Description', 'Computation'],
-                        [[_.tr[
-                              _.td[escape(metric.name)],
-                              _.td[_.i[escape(metric.description)]],
-                              _.td[_.code[escape(metric.display_formula())]]
-                          ] for metric in data_set.metrics.values()]]),
-                ]),
+            create_metrics_card(data_set),
             bootstrap.card(
                 header_left='Attributes',
                 body=bootstrap.table(["Name", "Description", "Column name"], attribute_rows(data_set))),
@@ -146,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ''']])
         ],
         title=f'Data set "{data_set.name}"',
-        js_files=[flask.url_for('mara_schema.static', filename='data-set-sql-query.js')],
+        js_files=get_js_files(),
     )
 
 
