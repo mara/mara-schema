@@ -144,7 +144,7 @@ class DataSet():
 
     def include_attributes(self, path: _PathSpec, attribute_names: [str]):
         """
-        Include all attributes except the specified ones of a connected entity in generated data set tables.
+        Exclude all attributes except the explicitly included ones of a connected entity in generated data set tables.
 
         Args:
             path: How to get to the entity from the data set entity.
