@@ -60,6 +60,15 @@ class Entity():
                 important_field=important_field
             ))
 
+    def remove_attribute(self, name: str) -> None:
+        """
+        Removes a property based on a column in the underlying dimensional table from the entity
+
+        Args:
+            name: How the attribute is displayed in front-ends, e.g. "Order date"
+        """
+        self.attributes.remove(self.find_attribute(name))
+
     def link_entity(self, target_entity: 'Entity', fk_column: str = None,
                     prefix: str = None, description=None) -> None:
         """
@@ -118,7 +127,7 @@ class Entity():
 
 class EntityLink():
     def __init__(self, target_entity: Entity, prefix: str,
-                 description: str= None, fk_column: str = None) -> None:
+                 description: str = None, fk_column: str = None) -> None:
         """
         A link from an entity to another entity, corresponds to a foreign key relationship
 
