@@ -75,7 +75,7 @@ def data_set_sql_query(data_set: DataSet,
                               if human_readable_columns else table_alias_for_path(path) + '_fk'),
                 cast_to_text=False, first=first)
 
-        # Add columns for all attributes
+        # Add columns for all attributes of all transitively linked entities
         if transitive:
             for name, attribute in attributes.items():
                 print(name)
@@ -105,6 +105,7 @@ def data_set_sql_query(data_set: DataSet,
                                               column_alias=column_alias,
                                               cast_to_text=attribute.type == Type.ENUM, first=first,
                                               custom_column_expression=custom_column_expression)
+        # Only add foreign key columns of linked entities
         elif transitive is False and path:
             first = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
