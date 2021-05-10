@@ -78,8 +78,6 @@ def data_set_sql_query(data_set: DataSet,
         # Add columns for all attributes of all transitively linked entities
         if transitive:
             for name, attribute in attributes.items():
-                print(name)
-                print(attribute)
                 if attribute.personal_data and not personal_data:
                     continue
                 if attribute.high_cardinality and not high_cardinality_attributes:
