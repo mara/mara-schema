@@ -25,7 +25,6 @@ def data_set_sql_query(data_set: DataSet,
         human_readable_columns: Whether to use "Customer name" rather than "customer_name" as column name
         pre_computed_metrics: Whether to pre-compute composed metrics, counts and distinct counts on row level
         star_schema: Whether to add foreign keys to the tables of linked entities rather than including their attributes
-        star_schema_transitive_fks: When True, include foreign keys to transitively linked tables
         personal_data: Whether to include attributes that are marked as personal dataTrue
         high_cardinality_attributes: Whether to include attributes that are marked to have a high cardinality
         engine: A sqlalchemy engine that is used to quote database identifiers. Defaults to a PostgreSQL engine.
@@ -46,8 +45,6 @@ def data_set_sql_query(data_set: DataSet,
     query = 'SELECT'
 
     column_definitions = []
-
-    transitive = True
 
     # Iterate all connected entities
     for path, attributes in data_set.connected_attributes().items():
@@ -75,8 +72,8 @@ def data_set_sql_query(data_set: DataSet,
                               if human_readable_columns else table_alias_for_path(path) + '_fk'),
                 cast_to_text=False, first=first)
 
-        # Add columns for all attributes of all transitively linked entities
-        if transitive:
+        # Add columns for all attributes
+        if star_schema_transitive_fks or path == ():
             for name, attribute in attributes.items():
                 if attribute.personal_data and not personal_data:
                     continue
@@ -103,16 +100,13 @@ def data_set_sql_query(data_set: DataSet,
                                               column_alias=column_alias,
                                               cast_to_text=attribute.type == Type.ENUM, first=first,
                                               custom_column_expression=custom_column_expression)
-        # Only add foreign key columns of linked entities
-        elif transitive is False and path:
+        elif star_schema_transitive_fks is False and path:
             first = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
                 column_alias=table_alias_for_path(path) + '_fk',
                 cast_to_text=False, first=first)
 
-        if not star_schema_transitive_fks:
-            transitive = False
 
     # helper function for pre-computing composed metrics
     def sql_formula(metric):
