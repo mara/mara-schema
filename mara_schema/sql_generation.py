@@ -24,7 +24,20 @@ def data_set_sql_query(data_set: DataSet,
         data_set: the data set to flatten
         human_readable_columns: Whether to use "Customer name" rather than "customer_name" as column name
         pre_computed_metrics: Whether to pre-compute composed metrics, counts and distinct counts on row level
-        star_schema: Whether to add foreign keys to the tables of linked entities rather than including their attributes
+        star_schema: Whether to add foreign keys to the tables of linked entities rather than including their attributes.
+        star_schema_transitive_fks: Whether to include all attributes of all transitively linked entities. When False,
+            only their respective foreign keys are included. Defaults to True.
+            Example for star_schema_transitive_fks = False:
+                SELECT order.id
+                       order.date
+                       order.price
+
+                       customer.customer_fk
+
+                       store.store_fk
+               FROM order
+                 LEFT JOIN customer
+                 LEFT JOIN store
         personal_data: Whether to include attributes that are marked as personal dataTrue
         high_cardinality_attributes: Whether to include attributes that are marked to have a high cardinality
         engine: A sqlalchemy engine that is used to quote database identifiers. Defaults to a PostgreSQL engine.
@@ -73,6 +86,7 @@ def data_set_sql_query(data_set: DataSet,
                 cast_to_text=False, first=first)
 
         # Add columns for all attributes
+        # Always add all columns for the first object (i.e. the original dataset) as indicated by path == ()
         if star_schema_transitive_fks or path == ():
             for name, attribute in attributes.items():
                 if attribute.personal_data and not personal_data:
@@ -100,12 +114,16 @@ def data_set_sql_query(data_set: DataSet,
                                               column_alias=column_alias,
                                               cast_to_text=attribute.type == Type.ENUM, first=first,
                                               custom_column_expression=custom_column_expression)
+
+        # Only add foreign key columns of linked entities
         elif star_schema_transitive_fks is False and path:
             first = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
                 column_alias=table_alias_for_path(path) + '_fk',
                 cast_to_text=False, first=first)
+        else:
+            assert False, 'This should not happen.'
 
 
     # helper function for pre-computing composed metrics
