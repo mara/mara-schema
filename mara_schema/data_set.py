@@ -29,7 +29,9 @@ class DataSet():
 
     def add_simple_metric(self, name: str, description: str, column_name: str, aggregation: Aggregation,
                           important_field: bool = False,
-                          number_format: NumberFormat = NumberFormat.STANDARD):
+                          number_format: NumberFormat = NumberFormat.STANDARD,
+                          more_url: typing.Optional[str] = None,
+                          ):
         """
         Add a metric that is computed as a direct aggregation on a entity table column
 
@@ -40,6 +42,7 @@ class DataSet():
             aggregation: The aggregation method to use
             important_field: It refers to key business metrics.
             number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
+            more_url: URL (as string) which should be appended as a `more...` link in the UI.
         """
         if name in self.metrics:
             raise ValueError(f'Metric "{name}" already exists in data set "{self.name}"')
@@ -51,10 +54,14 @@ class DataSet():
             column_name=column_name,
             aggregation=aggregation,
             important_field=important_field,
-            number_format=number_format)
+            number_format=number_format,
+            more_url=more_url,
+        )
 
     def add_composed_metric(self, name: str, description: str, formula: str, important_field: bool = False,
-                            number_format: NumberFormat = NumberFormat.STANDARD):
+                            number_format: NumberFormat = NumberFormat.STANDARD,
+                            more_url: typing.Optional[str] = None,
+                            ):
         """
         Add a metric that is based on a list of simple metrics.
 
@@ -64,6 +71,7 @@ class DataSet():
             formula: How to compute the metric. Examples: [Metric A] + [Metric B],  [Metric A] / ([Metric B] + [Metric C])
             important_field: It refers to key business metrics.
             number_format: The way to format a string. Defaults to NumberFormat.STANDARD.
+            more_url: URL (as string) which should be appended as a `more...` link in the UI.
         """
         if name in self.metrics:
             raise ValueError(f'Metric "{name}" already exists in data set "{self.name}"')
@@ -86,7 +94,9 @@ class DataSet():
                                             parent_metrics=parent_metrics,
                                             formula_template='{}'.join(formula_split[0::2]),
                                             important_field=important_field,
-                                            number_format=number_format)
+                                            number_format=number_format,
+                                            more_url=more_url,
+                                            )
 
     _PathSpec = typing.TypeVar('_PathSpec', typing.Sequence[typing.Union[str, typing.Tuple[str, str]]], bytes)
 
@@ -180,7 +190,7 @@ class DataSet():
                 path = current_path + (entity_link,)
 
                 if (entity_link not in current_path  # check for circles in path
-                        and (path not in self.excluded_paths)  # explicitly excluded paths
+                    and (path not in self.excluded_paths)  # explicitly excluded paths
                 ):
                     _append_path_including_subpaths(paths, path)
                     traverse_graph(entity_link.target_entity, path)
@@ -211,10 +221,10 @@ class DataSet():
             for attribute in entity.attributes:
                 if ((path in self.included_attributes and attribute in self.included_attributes[path])
                     or (path not in self.included_attributes)) \
-                        and ((path in self.excluded_attributes and attribute not in self.excluded_attributes[path])
-                             or (path not in self.excluded_attributes)) \
-                        and attribute.accessible_via_entity_link and (
-                        include_personal_data or not attribute.personal_data):
+                    and ((path in self.excluded_attributes and attribute not in self.excluded_attributes[path])
+                         or (path not in self.excluded_attributes)) \
+                    and attribute.accessible_via_entity_link and (
+                    include_personal_data or not attribute.personal_data):
                     result[path][attribute.prefixed_name(path)] = attribute
         return result
 

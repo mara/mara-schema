@@ -1,9 +1,11 @@
 """Documentation of data sets and entities"""
 
 import functools
+import re
 from html import escape
 
 import flask
+import unicodedata
 from mara_page import acl, navigation, response, bootstrap, _, html
 
 from ..data_set import DataSet
@@ -20,6 +22,28 @@ def data_set_url(data_set: DataSet) -> str:
     return flask.url_for('mara_schema.data_set_page', id=data_set.id())
 
 
+_slugify_strip_re = re.compile(r'[^\w\s-]')
+_slugify_hyphenate_re = re.compile(r'[-\s]+')
+
+
+# from https://github.com/django/django/blob/0382ecfe020b4c51b4c01e4e9a21892771e66941/django/utils/text.py
+# Under BSD license
+def slugify(value, allow_unicode=False):
+    """
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(_slugify_strip_re, '', value.lower())
+    return re.sub(_slugify_hyphenate_re, '-', value).strip('-_')
+
+
 def schema_navigation_entry() -> navigation.NavigationEntry:
     """Defines a part of the navigation tree (needs to be handled by the application).
 
@@ -27,7 +51,7 @@ def schema_navigation_entry() -> navigation.NavigationEntry:
         A mara NavigationEntry object.
 
     """
-    from ..config import data_sets
+    from .. import config
 
     return navigation.NavigationEntry(
         label='Data sets', icon='book',
@@ -38,14 +62,14 @@ def schema_navigation_entry() -> navigation.NavigationEntry:
                                                description=data_set.entity.description,
                                                uri_fn=lambda data_set=data_set: flask.url_for(
                                                    'mara_schema.data_set_page', id=data_set.id()))
-                    for data_set in data_sets()])
+                    for data_set in config.data_sets()])
 
 
 @blueprint.route('')
 @acl.require_permission(acl_resource_schema)
 def index_page() -> response.Response:
     """Renders the overview page"""
-    from ..config import data_sets
+    from .. import config
 
     return response.Response(
 
@@ -61,7 +85,7 @@ def index_page() -> response.Response:
                                                       id=data_set.id()))[
                         escape(data_set.name)]],
                           _.td[_.i[escape(data_set.entity.description)]],
-                     ] for data_set in data_sets()]),
+                     ] for data_set in config.data_sets()]),
             )],
         title='Data sets documentation',
         css_files=[flask.url_for('mara_schema.static', filename='schema.css')]
@@ -72,9 +96,9 @@ def index_page() -> response.Response:
 @acl.require_permission(acl_resource_schema)
 def data_set_page(id: str) -> response.Response:
     """Renders the pages for individual data sets"""
-    from ..config import data_sets
+    from .. import config
 
-    data_set = next((data_set for data_set in data_sets() if data_set.id() == id), None)
+    data_set = next((data_set for data_set in config.data_sets() if data_set.id() == id), None)
     if not data_set:
         flask.flash(f'Could not find data set "{id}"', category='warning')
         return flask.redirect(flask.url_for('mara_schema.index_page'))
@@ -95,9 +119,40 @@ def data_set_page(id: str) -> response.Response:
                     [' &nbsp;&nbsp;', _.i[path[-1].description]] if path[-1].description else ''
                 ]])
             for prefixed_name, attribute in attributes.items():
-                rows.append(_.tr[_.td[escape(prefixed_name)],
-                                 _.td[_.i[escape(attribute.description)]],
-                                 _.td[_.tt[escape(f'{path[-1].target_entity.table_name + "." if path else ""}{attribute.column_name}')]]])
+                attribute_link_id = slugify(f'attribute {path[-1].target_entity.name if path else ""} {attribute.name}')
+                rows.append(_.tr(id=attribute_link_id)[
+                                _.td[
+                                    escape(prefixed_name),
+                                    ' ',
+                                    _.a(class_='anchor-link-sign',
+                                        href=f'#{attribute_link_id}')['¶'],
+
+                                ],
+                                _.td[[_.i[escape(attribute.description)]] +
+                                     ([' (', _.a(href=attribute.more_url)['more...'], ')']
+                                      if attribute.more_url else [])],
+                                _.td[_.tt[escape(
+                                    f'{path[-1].target_entity.table_name + "." if path else ""}{attribute.column_name}')]]])
+        return rows
+
+    def metrics_rows(data_set: DataSet) -> []:
+        rows = []
+        for metric in data_set.metrics.values():
+            metric_link_id = slugify(f'metric {metric.name}')
+
+            rows.append([_.tr(id=metric_link_id)[
+                            _.td[
+                                escape(metric.name),
+                                ' ',
+                                _.a(class_='anchor-link-sign',
+                                    href=f'#{metric_link_id}')['¶'],
+
+                            ],
+                            _.td[[_.i[escape(metric.description)]] +
+                                 ([' (', _.a(href=metric.more_url)['more...'], ')'] if metric.more_url else [])
+                                 ],
+                            _.td[_.code[escape(metric.display_formula())]]
+                        ]])
         return rows
 
     return response.Response(
@@ -114,11 +169,8 @@ def data_set_page(id: str) -> response.Response:
                     html.asynchronous_content(flask.url_for('mara_schema.metrics_graph', id=data_set.id())),
                     bootstrap.table(
                         ['Name', 'Description', 'Computation'],
-                        [[_.tr[
-                              _.td[escape(metric.name)],
-                              _.td[_.i[escape(metric.description)]],
-                              _.td[_.code[escape(metric.display_formula())]]
-                          ] for metric in data_set.metrics.values()]]),
+                        metrics_rows(data_set)
+                    ),
                 ]),
             bootstrap.card(
                 header_left='Attributes',
@@ -148,17 +200,18 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
         title=f'Data set "{data_set.name}"',
         js_files=[flask.url_for('mara_schema.static', filename='data-set-sql-query.js')],
+        css_files=[flask.url_for('mara_schema.static', filename='mara-schema.css')],
     )
 
 
 @blueprint.route('/<id>/_data_set_sql_query', defaults={'params': ''})
 @blueprint.route('/<id>/_data_set_sql_query/<path:params>')
 def data_set_sql_query(id: str, params: [str]) -> response.Response:
-    from ..config import data_sets
+    from .. import config
     from ..sql_generation import data_set_sql_query
 
     params = set(params.split('/'))
-    data_set = next((data_set for data_set in data_sets() if data_set.id() == id), None)
+    data_set = next((data_set for data_set in config.data_sets() if data_set.id() == id), None)
     if not data_set:
         return f'Could not find data set "{id}"'
 
@@ -186,10 +239,10 @@ def overview_graph() -> str:
 @acl.require_permission(acl_resource_schema)
 def data_set_graph(id: str) -> str:
     """Renders a graph with all the linked entities of an individual data sets"""
-    from ..config import data_sets
+    from .. import config
     from .graph import data_set_graph
 
-    data_set = next((data_set for data_set in data_sets() if data_set.id() == id), None)
+    data_set = next((data_set for data_set in config.data_sets() if data_set.id() == id), None)
     if not data_set:
         return f'Could not find data set "{id}"'
 
@@ -200,10 +253,10 @@ def data_set_graph(id: str) -> str:
 @acl.require_permission(acl_resource_schema)
 def metrics_graph(id: str) -> str:
     """Renders a visualization of all composed metrics of a data set"""
-    from ..config import data_sets
+    from .. import config
     from .graph import metrics_graph
 
-    data_set = next((data_set for data_set in data_sets() if data_set.id() == id), None)
+    data_set = next((data_set for data_set in config.data_sets() if data_set.id() == id), None)
     if not data_set:
         return f'Could not find data set "{id}"'
 

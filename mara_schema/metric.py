@@ -1,6 +1,8 @@
 import abc
 import enum
 
+import typing
+
 
 class Aggregation(enum.EnumMeta):
     """Aggregation methods for metrics"""
@@ -42,7 +44,8 @@ class Metric(abc.ABC):
 class SimpleMetric(Metric):
     def __init__(self, name: str, description: str, data_set: 'DataSet',
                  column_name: str, aggregation: Aggregation, important_field: bool = False,
-                 number_format: NumberFormat = NumberFormat.STANDARD):
+                 number_format: NumberFormat = NumberFormat.STANDARD,
+                 more_url: typing.Optional[str] = None):
         """
         A metric that is computed as a direct aggregation on a entity table column
         Args:
@@ -59,6 +62,7 @@ class SimpleMetric(Metric):
         self.aggregation = aggregation
         self.important_field = important_field
         self.number_format = number_format
+        self.more_url = more_url
 
     def __repr__(self) -> str:
         return f'<Metric "{self.name}": {self.display_formula()})>'
@@ -70,7 +74,8 @@ class SimpleMetric(Metric):
 class ComposedMetric(Metric):
     def __init__(self, name: str, description: str, data_set: 'DataSet',
                  parent_metrics: [Metric], formula_template: str, important_field: bool = False,
-                 number_format: NumberFormat = NumberFormat.STANDARD) -> None:
+                 number_format: NumberFormat = NumberFormat.STANDARD,
+                 more_url: typing.Optional[str] = None) -> None:
         """
         A metric that is based on a list of simple metrics.
         Args:
@@ -88,6 +93,7 @@ class ComposedMetric(Metric):
         self.formula_template = formula_template
         self.important_field = important_field
         self.number_format = number_format
+        self.more_url = more_url
 
     def __repr__(self) -> str:
         return f'<ComposedMetric "{self.name}": {self.display_formula()}>'
