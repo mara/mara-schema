@@ -138,7 +138,7 @@ def data_set_sql_query(data_set: DataSet,
         else:
             if '/' in metric.formula_template:  # avoid divisions by 0
                 return metric.formula_template.format(
-                    *[f'(NULLIF({sql_formula(metric)} :: DOUBLE PRECISION, 0.0))' for metric in metric.parent_metrics])
+                    *[f'(NULLIF({sql_formula(metric)}, 0.0))' for metric in metric.parent_metrics])
 
             else:  # render metric template
                 return metric.formula_template.format(
