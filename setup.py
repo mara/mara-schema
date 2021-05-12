@@ -17,7 +17,7 @@ def static_files() -> [str]:
 
 setup(
     name='mara-schema',
-    version='1.0.1',
+    version='1.1.0',
 
     description='Mapping of DWH database tables to business entities, attributes & metrics in Python, with automatic creation of flattened tables',
     long_description=get_long_description(),
