@@ -135,6 +135,7 @@ def data_set_page(id: str) -> response.Response:
                                   'human readable columns',
                                   'pre-computed metrics',
                                   'star schema',
+                                  'star_schema_transitive_fks',
                                   'personal data',
                                   'high cardinality attributes',
                               ]]],
@@ -166,7 +167,8 @@ def data_set_sql_query(id: str, params: [str]) -> response.Response:
                              human_readable_columns='human readable columns' in params,
                              personal_data='personal data' in params,
                              high_cardinality_attributes='high cardinality attributes' in params,
-                             star_schema='star schema' in params)
+                             star_schema='star schema' in params,
+                             star_schema_transitive_fks='star_schema_transitive_fks' in params)
     return str(_.div[html.highlight_syntax(sql, 'sql')])
 
 
