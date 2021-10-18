@@ -14,6 +14,7 @@ def data_set_sql_query(data_set: DataSet,
                        pre_computed_metrics=True,
                        star_schema: bool = False,
                        star_schema_transitive_fks: bool = True,
+                       custom_columns: bool = False,
                        personal_data=True,
                        high_cardinality_attributes=True,
                        engine: sqlalchemy.engine.Engine = None) -> str:
@@ -38,6 +39,8 @@ def data_set_sql_query(data_set: DataSet,
                FROM order
                  LEFT JOIN customer
                  LEFT JOIN store
+        custom_columns: Overrides Mara's default naming behaviour. Takes the values of the column names defined in the
+            dim schema. 
         personal_data: Whether to include attributes that are marked as personal dataTrue
         high_cardinality_attributes: Whether to include attributes that are marked to have a high cardinality
         engine: A sqlalchemy engine that is used to quote database identifiers. Defaults to a PostgreSQL engine.
@@ -61,17 +64,22 @@ def data_set_sql_query(data_set: DataSet,
 
     # Iterate all connected entities
     for path, attributes in data_set.connected_attributes().items():
+        print(data_set.connected_attributes().items())
         first = True  # for adding an empty line between each entity
 
         # helper function for adding a column
         def add_column_definition(table_alias: str, column_name: str, column_alias: str,
-                                  cast_to_text: bool, first: bool, custom_column_expression: str = None):
+                                  cast_to_text: bool, first: bool, custom_naming: bool = False,
+                                  custom_column_expression: str = None):
             column_definition = '\n    ' if first else '    '
             column_definition += custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}'
             if cast_to_text:
                 column_definition += '::TEXT'
-            if column_alias != column_name:
+            if custom_naming:
+                column_definition += f' AS {quote(column_name)}'
+            elif column_alias != column_name:
                 column_definition += f' AS {quote(column_alias)}'
+
             column_definitions.append(column_definition)
 
             return False
@@ -113,7 +121,8 @@ def data_set_sql_query(data_set: DataSet,
                 first = add_column_definition(table_alias=table_alias, column_name=column_name,
                                               column_alias=column_alias,
                                               cast_to_text=attribute.type == Type.ENUM, first=first,
-                                              custom_column_expression=custom_column_expression)
+                                              custom_column_expression=custom_column_expression,
+                                              custom_naming=custom_columns)
 
         # Only add foreign key columns of linked entities
         elif star_schema_transitive_fks is False and path:
@@ -121,7 +130,7 @@ def data_set_sql_query(data_set: DataSet,
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
                 column_alias=table_alias_for_path(path) + '_fk',
-                cast_to_text=False, first=first)
+                cast_to_text=False, first=first, custom_naming=custom_columns)
         else:
             assert False, 'This should not happen.'
 
