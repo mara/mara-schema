@@ -40,7 +40,7 @@ def data_set_sql_query(data_set: DataSet,
                  LEFT JOIN customer
                  LEFT JOIN store
         custom_columns: Overrides Mara's default naming behaviour. Takes the values of the column names defined in the
-            dim schema. 
+            dim schema. Attributed of linked entities will be prepended by "LinkedEntity_". Does not apply to foreign keys.
         personal_data: Whether to include attributes that are marked as personal dataTrue
         high_cardinality_attributes: Whether to include attributes that are marked to have a high cardinality
         engine: A sqlalchemy engine that is used to quote database identifiers. Defaults to a PostgreSQL engine.
@@ -64,33 +64,31 @@ def data_set_sql_query(data_set: DataSet,
 
     # Iterate all connected entities
     for path, attributes in data_set.connected_attributes().items():
-        print(data_set.connected_attributes().items())
         first = True  # for adding an empty line between each entity
 
         # helper function for adding a column
         def add_column_definition(table_alias: str, column_name: str, column_alias: str,
-                                  cast_to_text: bool, first: bool, custom_naming: bool = False,
-                                  custom_column_expression: str = None):
+                                  cast_to_text: bool, first: bool, custom_column_expression: str = None):
             column_definition = '\n    ' if first else '    '
             column_definition += custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}'
             if cast_to_text:
                 column_definition += '::TEXT'
-            if custom_naming:
-                column_definition += f' AS {quote(column_name)}'
-            elif column_alias != column_name:
+            if column_alias != column_name:
                 column_definition += f' AS {quote(column_alias)}'
 
             column_definitions.append(column_definition)
 
             return False
 
+        entity_identifier = (' '.join([entity_link.prefix or entity_link.target_entity.name
+                                       for entity_link in path]))
+
         if star_schema and path:  # create a foreign key to the last entity of the path
             first = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
-                column_alias=(normalize_name(' '.join([entity_link.prefix or entity_link.target_entity.name
-                                                       for entity_link in path]))
-                              if human_readable_columns else table_alias_for_path(path) + '_fk'),
+                column_alias=(normalize_name(entity_identifier) if human_readable_columns else (
+                        entity_identifier + column_name) if custom_columns else table_alias_for_path(path) + '_fk'),
                 cast_to_text=False, first=first)
 
         # Add columns for all attributes
@@ -104,7 +102,13 @@ def data_set_sql_query(data_set: DataSet,
 
                 table_alias = table_alias_for_path(path) if path else entity_table_alias
                 column_name = attribute.column_name
-                column_alias = name if human_readable_columns else database_identifier(name)
+                if human_readable_columns:
+                    column_alias = name
+                elif custom_columns:
+                    column_alias = entity_identifier.replace(' ',
+                                                             '') + '_' + column_name if entity_identifier else column_name
+                else:
+                    column_alias = database_identifier(name)
                 custom_column_expression = None
 
                 if star_schema:  # Add foreign keys for dates and durations
@@ -121,8 +125,7 @@ def data_set_sql_query(data_set: DataSet,
                 first = add_column_definition(table_alias=table_alias, column_name=column_name,
                                               column_alias=column_alias,
                                               cast_to_text=attribute.type == Type.ENUM, first=first,
-                                              custom_column_expression=custom_column_expression,
-                                              custom_naming=custom_columns)
+                                              custom_column_expression=custom_column_expression)
 
         # Only add foreign key columns of linked entities
         elif star_schema_transitive_fks is False and path:
@@ -130,10 +133,9 @@ def data_set_sql_query(data_set: DataSet,
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
                 column_alias=table_alias_for_path(path) + '_fk',
-                cast_to_text=False, first=first, custom_naming=custom_columns)
+                cast_to_text=False, first=first)
         else:
             assert False, 'This should not happen.'
-
 
     # helper function for pre-computing composed metrics
     def sql_formula(metric):
