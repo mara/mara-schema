@@ -64,7 +64,6 @@ def data_set_sql_query(data_set: DataSet,
 
     # Iterate all connected entities
     for path, attributes in data_set.connected_attributes().items():
-        print(data_set.connected_attributes().items())
         first = True  # for adding an empty line between each entity
 
         # helper function for adding a column
