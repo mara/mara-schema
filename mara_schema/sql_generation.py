@@ -49,7 +49,6 @@ def data_set_sql_query(data_set: DataSet,
         A string containing the select statement
     """
     engine = engine or sqlalchemy.create_engine(f'postgresql+psycopg2://')
-
     def quote(name) -> str:
         """Quote a column or table name for the specified database engine"""
         return engine.dialect.identifier_preparer.quote(name)
@@ -105,7 +104,6 @@ def data_set_sql_query(data_set: DataSet,
                 column_name = attribute.column_name
                 column_alias = name if human_readable_columns else database_identifier(name)
                 custom_column_expression = None
-
                 if star_schema:  # Add foreign keys for dates and durations
                     if attribute.type == Type.DATE:
                         custom_column_expression = f"TO_CHAR({quote(table_alias)}.{quote(column_name)}, 'YYYYMMDD') :: INTEGER"
@@ -156,11 +154,16 @@ def data_set_sql_query(data_set: DataSet,
     for name, metric in data_set.metrics.items():
         column_alias = metric.name if human_readable_columns else database_identifier(metric.name)
 
-        if pre_computed_metrics:
+        if pre_computed_metrics and custom_columns:
+            column_definition = f'    {sql_formula(metric)} AS "{metric.name}"'
+        elif pre_computed_metrics:
             column_definition = f'    {sql_formula(metric)} AS {quote(column_alias)}'
+
         elif isinstance(metric, SimpleMetric):
             column_definition = f'    {quote(entity_table_alias)}.{quote(metric.column_name)}'
-            if column_alias != metric.column_name:
+            if custom_columns is True:
+                column_definition += f' AS {quote(metric.column_name)}'
+            elif column_alias != metric.column_name:
                 column_definition += f' AS {quote(column_alias)}'
         else:
             continue
