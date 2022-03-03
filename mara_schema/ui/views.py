@@ -215,13 +215,25 @@ def data_set_sql_query(id: str, params: [str]) -> response.Response:
     if not data_set:
         return f'Could not find data set "{id}"'
 
+    # using the engine of the default db from mara_pipelines.config.default_db_alias()
+    engine = None
+    try:
+        # since mara_pipelines and mara_db is not a default requirement of module mara_schema,
+        # we use a try/except clause
+        import mara_db.sqlalchemy_engine
+        import mara_pipelines.config
+        engine = mara_db.sqlalchemy_engine.engine(mara_pipelines.config.default_db_alias())
+    except ImportError or ModuleNotFoundError or NotImplementedError:
+        pass
+
     sql = data_set_sql_query(data_set,
                              pre_computed_metrics='pre-computed metrics' in params,
                              human_readable_columns='human readable columns' in params,
                              personal_data='personal data' in params,
                              high_cardinality_attributes='high cardinality attributes' in params,
                              star_schema='star schema' in params,
-                             star_schema_transitive_fks='star_schema_transitive_fks' in params)
+                             star_schema_transitive_fks='star_schema_transitive_fks' in params,
+                             engine=engine)
     return str(_.div[html.highlight_syntax(sql, 'sql')])
 
 
