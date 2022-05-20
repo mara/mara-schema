@@ -85,7 +85,7 @@ class DataSet():
         parent_metrics = []
         for metric_name in formula_split[1::2]:  # 1::2  start at second, take every 2nd,
             if metric_name not in self.metrics:
-                raise ValueError(f'Could not find metric "{metric_name} in data set "{self.name}"')
+                raise ValueError(f'Could not find metric "{metric_name}" in data set "{self.name}"')
             parent_metrics.append(self.metrics[metric_name])
 
         self.metrics[name] = ComposedMetric(name=name,
