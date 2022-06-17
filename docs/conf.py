@@ -16,12 +16,14 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Mara Schema'
-copyright = '2022, Mara contributors'
+copyright = '2020-2022, Mara contributors'
 author = 'Mara contributors'
 
+# The short X.Y version.
+from mara_schema import __version__
+version = __version__
 # The full version, including alpha/beta/rc tags
-release = '1.1.0'
-version = '1.1'
+release = version
 
 
 # -- General configuration ---------------------------------------------------
