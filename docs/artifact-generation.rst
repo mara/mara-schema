@@ -42,7 +42,7 @@ The resulting SELECT statement can be used for creating a data set table that is
     LEFT JOIN dim.product product ON order_item.product_fk = product.product_id
     LEFT JOIN dim.product_category product_product_category ON product.product_category_fk = product_product_category.product_category_id
 
-Please note that the ``data_set_sql_query`` only returns SQL select statements, it's a matter of executing these statements somewhere in the ETL of the Data Warehouse. `Here <https://github.com/mara/mara-example-project-1/tree/master/app/pipelines/generate_artifacts/metabase.py>`_ is an example for creating data set tables for Metabase using `Mara Pipelines <https://github.com/mara/mara-pipelines>`_.
+Please note that the ``data_set_sql_query`` only returns SQL select statements, it's a matter of executing these statements somewhere in the ETL of the Data Warehouse. `Here <https://github.com/mara/mara-example-project-1/tree/main/app/pipelines/generate_artifacts/metabase.py>`_ is an example for creating data set tables for Metabase using `Mara Pipelines <https://github.com/mara/mara-pipelines>`_.
 
 
 

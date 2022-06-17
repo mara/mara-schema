@@ -6,18 +6,18 @@ Let's consider the following toy example of a dimensional schema in the data war
 .. image:: _static/example-dimensional-database-schema.svg
     :alt: Example dimensional star schema
 
-Each box is a database table with its columns, and the lines between tables show the foreign key constraints. That's a classic Kimball style `snowflake schema <https://en.wikipedia.org/wiki/Snowflake_schema>`_ and it requires a proper modelling / ETL layer in your data warehouse. A script that creates these example tables in PostgreSQL can be found in `example/dimensional-schema.sql <https://github.com/mara/mara-schema/blob/master/mara_schema/example/dimensional-schema.sql>`_.
+Each box is a database table with its columns, and the lines between tables show the foreign key constraints. That's a classic Kimball style `snowflake schema <https://en.wikipedia.org/wiki/Snowflake_schema>`_ and it requires a proper modelling / ETL layer in your data warehouse. A script that creates these example tables in PostgreSQL can be found in `example/dimensional-schema.sql <https://github.com/mara/mara-schema/blob/main/mara_schema/example/dimensional-schema.sql>`_.
 
 It's a prototypical data warehouse schema for B2C e-commerce: There are orders composed of individual product purchases (order items) made by customers. There are circular references: Orders have a customer, and customers have a first order. Order items have a product (and thus a product category) and customers have a favourite product category.
 
-The respective entity and data set definitions for this database schema can be found in the `mara_schema/example <https://github.com/mara/mara-schema/tree/master/mara_schema/example>`_ directory.
+The respective entity and data set definitions for this database schema can be found in the `mara_schema/example <https://github.com/mara/mara-schema/tree/main/mara_schema/example>`_ directory.
 
 Entities
 --------
 
-In Mara Schema, each business relevant table in the dimensional schema is mapped to an `Entity <https://github.com/mara/mara-schema/blob/master/mara_schema/entity.py>`_. In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of an order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
+In Mara Schema, each business relevant table in the dimensional schema is mapped to an `Entity <https://github.com/mara/mara-schema/blob/main/mara_schema/entity.py>`_. In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of an order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
 
-Here's a `shortened <https://github.com/mara/mara-schema/blob/master/mara_schema/example/entities/order_item.py>`_ defnition of the "Order item" entity based on the ``dim.order_item`` table:
+Here's a `shortened <https://github.com/mara/mara-schema/blob/main/mara_schema/example/entities/order_item.py>`_ defnition of the "Order item" entity based on the ``dim.order_item`` table:
 
 .. code-block:: python
 
@@ -33,7 +33,7 @@ It assumes that there is an ``order_item`` table in the ``dim`` schema of the da
 Attributes
 ----------
 
-`Attributes <https://github.com/mara/mara-schema/blob/master/mara_schema/attribute.py>`_ represent facts about an entity. They correspond to the non-numerical columns in a fact or dimension table:
+`Attributes <https://github.com/mara/mara-schema/blob/main/mara_schema/attribute.py>`_ represent facts about an entity. They correspond to the non-numerical columns in a fact or dimension table:
 
 .. code-block:: python
 
@@ -51,7 +51,7 @@ They come with a speaking name (as shown in reporting front-ends), a description
 There a several parameters for controlling the generation of artifact tables and the visibility in front-ends: 
 - Setting ``personal_data`` to ``True`` means that the attribute contains personally identifiable information and thus should be hidden from most users.
 - When ```high_cardinality` is ``True``, then the attribute is hidden in front-ends that can not deal well with dimensions with a lot of values.
-- The ``type`` attribute controls how some fields are treated in artifact creation. See `mara_schema/attribute.py#L7 <https://github.com/mara/mara-schema/blob/master/mara_schema/attribute.py#L7>`_.
+- The ``type`` attribute controls how some fields are treated in artifact creation. See `mara_schema/attribute.py#L7 <https://github.com/mara/mara-schema/blob/main/mara_schema/attribute.py#L7>`_.
 - An ``important_field`` highlights the data set and is shown by default in overviews.
 - When ``accessible_via_entity_link`` is ``False``, then the attribute will be hidden in data sets that use the entity as an dimension.
 
@@ -73,7 +73,7 @@ This pulls in attributes of other entities that are connected to an entity table
 Data Sets
 ---------
 
-Once all entities and their relationships are established, `Data Sets <https://github.com/mara/mara-schema/blob/master/mara_schema/data_set.py>`_ (a.k.a "cubes", "models" or "data marts") add metrics and attributes from linked entities to an entity:
+Once all entities and their relationships are established, `Data Sets <https://github.com/mara/mara-schema/blob/main/mara_schema/data_set.py>`_ (a.k.a "cubes", "models" or "data marts") add metrics and attributes from linked entities to an entity:
 
 .. code-block:: python
 
@@ -84,7 +84,7 @@ Once all entities and their relationships are established, `Data Sets <https://g
     order_items_data_set = DataSet(entity=order_item_entity, name='Order items')
 
 
-There are two kinds of `Metrics <https://github.com/mara/mara-schema/blob/master/mara_schema/metric.py>`_ (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as direct aggregations on an entity table column:
+There are two kinds of `Metrics <https://github.com/mara/mara-schema/blob/main/mara_schema/metric.py>`_ (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as direct aggregations on an entity table column:
 
 .. code-block:: python
 
