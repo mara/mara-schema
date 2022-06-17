@@ -12,7 +12,7 @@ Python based mapping of physical data warehouse tables to logical business entit
 
 &nbsp;
 
-![Mara Schema overview](docs/mara-schema.png)
+![Mara Schema overview](https://github.com/mara/mara-schema/raw/master/docs/_static/mara-schema.png)
 
 &nbsp;
 
@@ -29,23 +29,39 @@ Have a look at a real-world application of Mara Schema in the [Mara Example Proj
  
 &nbsp;
 
+## Installation
+
+To use the library directly, use pip:
+
+```
+pip install mara-schema
+```
+
+or
+ 
+```
+pip install git+https://github.com/mara/mara-schema.git
+```
+
+&nbsp;
+
 ## Defining entities, attributes, metrics & data sets
 
 Let's consider the following toy example of a dimensional schema in the data warehouse of a hypothetical e-commerce company:
 
-![Example dimensional star schema](docs/example-dimensional-database-schema.svg)
+![Example dimensional star schema](https://github.com/mara/mara-schema/raw/master/docs/_static/example-dimensional-database-schema.svg)
 
-Each box is a database table with its columns, and the lines between tables show the foreign key constraints. That's a classic Kimball style [snowflake schema](https://en.wikipedia.org/wiki/Snowflake_schema) and it requires a proper modelling / ETL layer in your data warehouse. A script that creates these example tables in PostgreSQL can be found in [example/dimensional-schema.sql](mara_schema/example/dimensional-schema.sql).
+Each box is a database table with its columns, and the lines between tables show the foreign key constraints. That's a classic Kimball style [snowflake schema](https://en.wikipedia.org/wiki/Snowflake_schema) and it requires a proper modelling / ETL layer in your data warehouse. A script that creates these example tables in PostgreSQL can be found in [example/dimensional-schema.sql](https://github.com/mara/mara-schema/blob/master/mara_schema/example/dimensional-schema.sql).
 
 It's a prototypical data warehouse schema for B2C e-commerce: There are orders composed of individual product purchases (order items) made by customers. There are circular references: Orders have a customer, and customers have a first order. Order items have a product (and thus a product category) and customers have a favourite product category.
 
-The respective entity and data set definitions for this database schema can be found in the [mara_schema/example](mara_schema/example) directory.
+The respective entity and data set definitions for this database schema can be found in the [mara_schema/example](https://github.com/mara/mara-schema/tree/master/mara_schema/example) directory.
 
 &nbsp;
 
-In Mara Schema, each business relevant table in the dimensional schema is mapped to an [Entity](mara_schema/entity.py). In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of an order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
+In Mara Schema, each business relevant table in the dimensional schema is mapped to an [Entity](https://github.com/mara/mara-schema/blob/master/mara_schema/entity.py). In dimensional modelling terms, entities can be both fact tables and dimensions. For example, a customer entity can be a dimension of an order items data set (a.k.a. "cube", "model", "data mart") and a customer data set of its own.
 
-Here's a [shortened](mara_schema/example/entities/order_item.py) defnition of the "Order item" entity based on the `dim.order_item` table:
+Here's a [shortened](https://github.com/mara/mara-schema/blob/master/mara_schema/example/entities/order_item.py) defnition of the "Order item" entity based on the `dim.order_item` table:
 
 ```python
 from mara_schema.entity import Entity
@@ -60,7 +76,7 @@ It assumes that there is an `order_item` table in the `dim` schema of the data w
 
 &nbsp;
 
-[Attributes](mara_schema/attribute.py) represent facts about an entity. They correspond to the non-numerical columns in a fact or dimension table: 
+[Attributes](https://github.com/mara/mara-schema/blob/master/mara_schema/attribute.py) represent facts about an entity. They correspond to the non-numerical columns in a fact or dimension table: 
 
 ```python
 from mara_schema.attribute import Type
@@ -78,7 +94,7 @@ They come with a speaking name (as shown in reporting front-ends), a description
 There a several parameters for controlling the generation of artifact tables and the visibility in front-ends: 
 - Setting `personal_data` to `True` means that the attribute contains personally identifiable information and thus should be hidden from most users.
 - When `high_cardinality` is `True`, then the attribute is hidden in front-ends that can not deal well with dimensions with a lot of values.
-- The `type` attribute controls how some fields are treated in artifact creation. See [mara_schema/attribute.py#L7](mara_schema/attribute.py#L7).
+- The `type` attribute controls how some fields are treated in artifact creation. See [mara_schema/attribute.py#L7](https://github.com/mara/mara-schema/blob/master/mara_schema/attribute.py#L7).
 - An `important_field` highlights the data set and is shown by default in overviews.
 - When `accessible_via_entity_link` is `False`, then the attribute will be hidden in data sets that use the entity as an dimension.
 
@@ -98,7 +114,7 @@ This pulls in attributes of other entities that are connected to an entity table
 
 &nbsp;
 
-Once all entities and their relationships are established, [Data Sets](mara_schema/data_set.py) (a.k.a "cubes", "models" or "data marts") add metrics and attributes from linked entities to an entity:
+Once all entities and their relationships are established, [Data Sets](https://github.com/mara/mara-schema/blob/master/mara_schema/data_set.py) (a.k.a "cubes", "models" or "data marts") add metrics and attributes from linked entities to an entity:
 
 ```python
 from mara_schema.data_set import DataSet
@@ -110,7 +126,7 @@ order_items_data_set = DataSet(entity=order_item_entity, name='Order items')
 
 &nbsp;
 
-There are two kinds of [Metrics](mara_schema/metric.py) (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as direct aggregations on an entity table column: 
+There are two kinds of [Metrics](https://github.com/mara/mara-schema/blob/master/mara_schema/metric.py) (a.k.a "Measures") in Mara Schema: simple metrics and composed metrics. Simple metrics are computed as direct aggregations on an entity table column: 
 
 ```python
 from mara_schema.data_set import Aggregation
@@ -166,13 +182,13 @@ order_items_data_set.include_attributes(['Order', 'Customer', 'Order'], ['Order 
 
 Here only the order date of the first order of the customer of the order will be included in the data set.  
  
- &nbsp;
+&nbsp;
 
 ## Visualization
 
 Mara schema comes with (an optional) Flask based visualization that documents the metrics and attributes of all data sets:
 
-![Mara schema data set visualization](docs/mara-schema-data-set-visualization.png)
+![Mara schema data set visualization](https://github.com/mara/mara-schema/raw/master/docs/_static/mara-schema-data-set-visualization.png)
 
 When made available to business users, then this can serve as the "data dictionary", "data guide" or "data catalog" of a company. 
 
@@ -180,7 +196,7 @@ When made available to business users, then this can serve as the "data dictiona
 
 ## Artifact generation
 
-The function `data_set_sql_query` in [mara_schema/sql_generation.py](mara_schema/sql_generation.py) can be used to flatten the entities of a data set into a wide data set table: 
+The function `data_set_sql_query` in [mara_schema/sql_generation.py](https://github.com/mara/mara-schema/blob/master/mara_schema/sql_generation.py) can be used to flatten the entities of a data set into a wide data set table: 
 
 ```python
 data_set_sql_query(data_set=order_items_data_set, human_readable_columns=True, pre_computed_metrics=False,
@@ -234,7 +250,7 @@ There are several parameters for controlling the output of the `data_set_sql_que
  - `personal_data`: Whether to include attributes that are marked as personal data
  - `high_cardinality_attributes`: Whether to include attributes that are marked to have a high cardinality
 
-![Mara schema SQL generation](docs/mara-schema-sql-generation.gif)
+![Mara schema SQL generation](https://github.com/mara/mara-schema/raw/master/docs/_static/mara-schema-sql-generation.gif)
 
 
 ## Schema sync to front-ends
@@ -262,4 +278,12 @@ pip install git+https://github.com/mara/mara-schema.git
 
 For an example of an integration into a flask application, have a look at the [Mara Example Project 1](https://github.com/mara/mara-example-project-1).
 
+&nbsp;
 
+## Links
+
+* Documentation: https://mara-schema.readthedocs.io/en/stable
+* Changes: https://mara-schema.readthedocs.io/en/stable/changes.html
+* PyPI Releases: https://pypi.org/project/mara-schema/
+* Source Code: https://github.com/mara/mara-schema
+* Issue Tracker: https://github.com/mara/mara-schema/issues
