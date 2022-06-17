@@ -282,7 +282,7 @@ For an example of an integration into a flask application, have a look at the [M
 
 ## Links
 
-* Documentation: https://mara-schema.readthedocs.io/en/stable
+* Documentation: https://mara-schema.readthedocs.io/
 * Changes: https://mara-schema.readthedocs.io/en/stable/changes.html
 * PyPI Releases: https://pypi.org/project/mara-schema/
 * Source Code: https://github.com/mara/mara-schema
