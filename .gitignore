@@ -12,6 +12,9 @@ dist/
 # Unit test / coverage reports
 .pytest_cache/
 
+# Sphinx documentation
+docs/_build/
+
 # Dev tools
 .idea
 

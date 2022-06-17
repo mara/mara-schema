@@ -12,7 +12,7 @@ Python based mapping of physical data warehouse tables to logical business entit
 
 &nbsp;
 
-![Mara Schema overview](docs/mara-schema.png)
+![Mara Schema overview](docs/_static/mara-schema.png)
 
 &nbsp;
 
@@ -29,11 +29,27 @@ Have a look at a real-world application of Mara Schema in the [Mara Example Proj
  
 &nbsp;
 
+## Installation
+
+To use the library directly, use pip:
+
+```
+pip install mara-schema
+```
+
+or
+ 
+```
+pip install git+https://github.com/mara/mara-schema.git
+```
+
+&nbsp;
+
 ## Defining entities, attributes, metrics & data sets
 
 Let's consider the following toy example of a dimensional schema in the data warehouse of a hypothetical e-commerce company:
 
-![Example dimensional star schema](docs/example-dimensional-database-schema.svg)
+![Example dimensional star schema](docs/_static/example-dimensional-database-schema.svg)
 
 Each box is a database table with its columns, and the lines between tables show the foreign key constraints. That's a classic Kimball style [snowflake schema](https://en.wikipedia.org/wiki/Snowflake_schema) and it requires a proper modelling / ETL layer in your data warehouse. A script that creates these example tables in PostgreSQL can be found in [example/dimensional-schema.sql](mara_schema/example/dimensional-schema.sql).
 
@@ -166,13 +182,13 @@ order_items_data_set.include_attributes(['Order', 'Customer', 'Order'], ['Order 
 
 Here only the order date of the first order of the customer of the order will be included in the data set.  
  
- &nbsp;
+&nbsp;
 
 ## Visualization
 
 Mara schema comes with (an optional) Flask based visualization that documents the metrics and attributes of all data sets:
 
-![Mara schema data set visualization](docs/mara-schema-data-set-visualization.png)
+![Mara schema data set visualization](docs/_static/mara-schema-data-set-visualization.png)
 
 When made available to business users, then this can serve as the "data dictionary", "data guide" or "data catalog" of a company. 
 
@@ -234,7 +250,7 @@ There are several parameters for controlling the output of the `data_set_sql_que
  - `personal_data`: Whether to include attributes that are marked as personal data
  - `high_cardinality_attributes`: Whether to include attributes that are marked to have a high cardinality
 
-![Mara schema SQL generation](docs/mara-schema-sql-generation.gif)
+![Mara schema SQL generation](docs/_static/mara-schema-sql-generation.gif)
 
 
 ## Schema sync to front-ends
@@ -262,4 +278,12 @@ pip install git+https://github.com/mara/mara-schema.git
 
 For an example of an integration into a flask application, have a look at the [Mara Example Project 1](https://github.com/mara/mara-example-project-1).
 
+&nbsp;
 
+## Links
+
+* Documentation: https://mara-schema.readthedocs.io/en/stable
+* Changes: https://mara-schema.readthedocs.io/en/stable/changes.html
+* PyPI Releases: https://pypi.org/project/mara-schema/
+* Source Code: https://github.com/mara/mara-schema
+* Issue Tracker: https://github.com/mara/mara-schema/issues
