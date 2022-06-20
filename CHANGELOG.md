@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 (2022-06-20)
+
+- use client-side rendering for graphviz fallback (#20)
+
 ## 1.1.0 (2021-05-12)
 
 - Add 'more...' links after the description and add an anchor to metrics and attributes (#9)
