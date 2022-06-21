@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 (2022-06-21)
+
+- add data set sql generation support for other SQL engines (#22)
+- using the default db alias engine in view if possible (#21)
+- fix missing files in PyPI package
+
 ## 1.1.1 (2022-06-20)
 
 - use client-side rendering for graphviz fallback (#20)
