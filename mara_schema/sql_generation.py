@@ -69,7 +69,14 @@ def data_set_sql_query(data_set: DataSet,
             column_definition = '\n    ' if first else '    '
             column_definition += custom_column_expression or f'{quote(table_alias)}.{quote(column_name)}'
             if cast_to_text:
-                column_definition += '::TEXT'
+                if engine.url.drivername.startswith('postgresql'):
+                    column_definition += '::TEXT'
+                elif engine.url.drivername.startswith('bigquery'):
+                    column_definition = f'CAST({column_definition} AS STRING)'
+                elif engine.url.drivername.startswith('mssql'):
+                    column_definition = f'CAST({column_definition} AS NVARCHAR)'
+                else:
+                    raise NotImplementedError(f'Casting to text is not implemented for engine {engine.url.drivername}')
             if column_alias != column_name:
                 column_definition += f' AS {quote(column_alias)}'
             column_definitions.append(column_definition)
@@ -101,7 +108,14 @@ def data_set_sql_query(data_set: DataSet,
 
                 if star_schema:  # Add foreign keys for dates and durations
                     if attribute.type == Type.DATE:
-                        custom_column_expression = f"TO_CHAR({quote(table_alias)}.{quote(column_name)}, 'YYYYMMDD') :: INTEGER"
+                        if engine.url.drivername.startswith('postgresql'):
+                            custom_column_expression = f"TO_CHAR({quote(table_alias)}.{quote(column_name)}, 'YYYYMMDD') :: INTEGER"
+                        elif engine.url.drivername.startswith('bigquery'):
+                            custom_column_expression = f"CAST(FORMAT_DATE('%Y%m%d',{quote(table_alias)}.{quote(column_name)}) AS INT64)"
+                        elif engine.url.drivername.startswith('mssql'):
+                            custom_column_expression = f"CAST(CONVERT(char(8),{quote(table_alias)}.{quote(column_name)},112) AS INT)"
+                        else:
+                            raise NotImplementedError(f'Star schema casting of DATE attributes is not implemented for engine {engine.url.drivername}')
                         column_alias = name if human_readable_columns else database_identifier(name) + '_fk'
                     elif attribute.type == Type.DURATION:
                         column_alias = name if human_readable_columns else database_identifier(name) + '_fk'
@@ -131,14 +145,23 @@ def data_set_sql_query(data_set: DataSet,
         if isinstance(metric, SimpleMetric):
             if metric.aggregation in [Aggregation.DISTINCT_COUNT, Aggregation.COUNT]:
                 # for distinct counts, return 1::SMALLINT if the expression is not null
-                return f'({quote(entity_table_alias)}.{quote(metric.column_name)} IS NOT NULL) ::INTEGER :: SMALLINT'
+                if engine.url.drivername.startswith('postgresql'):
+                    return f'({quote(entity_table_alias)}.{quote(metric.column_name)} IS NOT NULL) ::INTEGER :: SMALLINT'
+                elif engine.url.drivername.startswith('bigquery'):
+                    return f'CAST({quote(entity_table_alias)}.{quote(metric.column_name)} IS NOT NULL AS INT64)'
+                else:
+                    return f'CASE WHEN {quote(entity_table_alias)}.{quote(metric.column_name)} IS NOT NULL THEN 1 ELSE 0 END'
             else:
                 # Coalesce with 0 so that metrics that combine simplemetrics work ( in SQL `1 + NULL` is `NULL` )
                 return f'COALESCE({quote(entity_table_alias)}.{quote(metric.column_name)}, 0)'
         else:
             if '/' in metric.formula_template:  # avoid divisions by 0
-                return metric.formula_template.format(
-                    *[f'(NULLIF({sql_formula(metric)}, 0.0 :: DOUBLE PRECISION))' for metric in metric.parent_metrics])
+                if engine.url.drivername.startswith('postgresql'):
+                    return metric.formula_template.format(
+                        *[f'(NULLIF({sql_formula(metric)}, 0.0 :: DOUBLE PRECISION))' for metric in metric.parent_metrics])
+                else:
+                    return metric.formula_template.format(
+                        *[f'(NULLIF({sql_formula(metric)}, 0.0))' for metric in metric.parent_metrics])
 
             else:  # render metric template
                 return metric.formula_template.format(
