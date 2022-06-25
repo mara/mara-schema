@@ -89,7 +89,7 @@ def data_set_sql_query(data_set: DataSet,
                 column_name=path[-1].fk_column,
                 column_alias=(normalize_name(' '.join([entity_link.prefix or entity_link.target_entity.name
                                                        for entity_link in path]))
-                              if human_readable_columns else table_alias_for_path(path) + '_fk'),
+                              if human_readable_columns else foreign_key_column_name(table_alias_for_path(path))),
                 cast_to_text=False, first=first)
 
         # Add columns for all attributes
@@ -116,9 +116,9 @@ def data_set_sql_query(data_set: DataSet,
                             custom_column_expression = f"CAST(CONVERT(char(8),{quote(table_alias)}.{quote(column_name)},112) AS INT)"
                         else:
                             raise NotImplementedError(f'Star schema casting of DATE attributes is not implemented for engine {engine.url.drivername}')
-                        column_alias = name if human_readable_columns else database_identifier(name) + '_fk'
+                        column_alias = name if human_readable_columns else foreign_key_column_name(database_identifier(name))
                     elif attribute.type == Type.DURATION:
-                        column_alias = name if human_readable_columns else database_identifier(name) + '_fk'
+                        column_alias = name if human_readable_columns else foreign_key_column_name(database_identifier(name))
                     elif not path:
                         pass  # Add attributes of data set entity
                     else:
@@ -134,7 +134,7 @@ def data_set_sql_query(data_set: DataSet,
             first = add_column_definition(
                 table_alias=table_alias_for_path(path[:-1]) if len(path) > 1 else entity_table_alias,
                 column_name=path[-1].fk_column,
-                column_alias=table_alias_for_path(path) + '_fk',
+                column_alias=foreign_key_column_name(table_alias_for_path(path)),
                 cast_to_text=False, first=first)
         else:
             assert False, 'This should not happen.'
@@ -213,3 +213,8 @@ def table_alias_for_path(path: (EntityLink,)) -> str:
     """Turns `(<EntityLink 'Customer'>, <EntityLink 'First order'>,)` into `customer_first_order` """
     return database_identifier('_'.join([entity_link.prefix or entity_link.target_entity.name
                                          for entity_link in path]))
+
+
+def foreign_key_column_name(name) -> str:
+    """Turns a table alias into a foreign key column name"""
+    return f'{name}_fk'
