@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 (2022-06-25)
+
+- makes the foreign key column naming patchable (#23)
+
 ## 1.2.0 (2022-06-21)
 
 - add data set sql generation support for other SQL engines (#22)
