@@ -28,7 +28,7 @@ Here's a `shortened <https://github.com/mara/mara-schema/blob/main/mara_schema/e
         description='Individual products sold as part of an order',
         schema_name='dim')
 
-It assumes that there is an ``order_item`` table in the ``dim`` schema of the data warehouse, with ``order_item_id`` as the primary key. The optional ``table_name`` and ``pk_column_name`` parameters can be used when another naming scheme for tables and primary keys is used.  
+It assumes that there is an ``order_item`` table in the ``dim`` schema of the data warehouse, with ``order_item_id`` as the primary key. The optional ``table_name`` and ``pk_column_name`` parameters can be used when another naming scheme for tables and primary keys is used.
 
 Attributes
 ----------
@@ -46,9 +46,9 @@ Attributes
         type=Type.ID,
         high_cardinality=True)
 
-They come with a speaking name (as shown in reporting front-ends), a description and a ``column_name`` in the underlying database table. 
+They come with a speaking name (as shown in reporting front-ends), a description and a ``column_name`` in the underlying database table.
 
-There a several parameters for controlling the generation of artifact tables and the visibility in front-ends: 
+There a several parameters for controlling the generation of artifact tables and the visibility in front-ends:
 - Setting ``personal_data`` to ``True`` means that the attribute contains personally identifiable information and thus should be hidden from most users.
 - When ```high_cardinality` is ``True``, then the attribute is hidden in front-ends that can not deal well with dimensions with a lot of values.
 - The ``type`` attribute controls how some fields are treated in artifact creation. See `mara_schema/attribute.py#L7 <https://github.com/mara/mara-schema/blob/main/mara_schema/attribute.py#L7>`_.
@@ -131,8 +131,8 @@ With complex snowflake schemas the graph of linked entities can become rather bi
 
 ``customers_data_set.exclude_path(['Order', 'Customer'])``
 
-This means that the customer of the first order of a customer will not be part of the customers data set. Similarly, it is possible to limit the list of attributes from a linked entity: 
+This means that the customer of the first order of a customer will not be part of the customers data set. Similarly, it is possible to limit the list of attributes from a linked entity:
 
 ``order_items_data_set.include_attributes(['Order', 'Customer', 'Order'], ['Order date'])``
 
-Here only the order date of the first order of the customer of the order will be included in the data set.  
+Here only the order date of the first order of the customer of the order will be included in the data set.

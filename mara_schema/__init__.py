@@ -30,4 +30,3 @@ def MARA_NAVIGATION_ENTRIES():
     return {
         'Schema': views.schema_navigation_entry()
     }
-
